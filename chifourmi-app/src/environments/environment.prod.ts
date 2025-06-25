@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  socketUrl: 'https://chifourmi-backend.up.railway.app' // URL Railway qu'on va créer
+  socketUrl: 'https://YOUR_RAILWAY_URL_HERE' // Remplacez par votre vraie URL Railway
 }; 
