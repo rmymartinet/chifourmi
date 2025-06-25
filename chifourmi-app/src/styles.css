@@ -1,0 +1,33 @@
+/* You can add global styles to this file, and also import other style files */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen;
+  }
+}
+
+@layer components {
+  .btn-choice {
+    @apply relative transform transition-all duration-200 hover:scale-110 active:scale-95;
+  }
+  
+  .btn-choice:hover {
+    @apply shadow-xl;
+  }
+  
+  .city-card {
+    @apply bg-white rounded-2xl shadow-lg p-6 border-2 transition-all duration-300;
+  }
+  
+  .city-bordeaux {
+    @apply border-bordeaux-500 bg-gradient-to-br from-red-50 to-rose-50;
+  }
+  
+  .city-vienne {
+    @apply border-vienne-500 bg-gradient-to-br from-blue-50 to-cyan-50;
+  }
+}
