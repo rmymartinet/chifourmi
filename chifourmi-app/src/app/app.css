@@ -1,0 +1,94 @@
+/* Confettis animation */
+.confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #f39c12;
+  animation: confetti-fall 3s linear infinite;
+}
+
+.confetti-piece:nth-child(odd) {
+  background: #e74c3c;
+  width: 8px;
+  height: 8px;
+  animation-delay: -0.5s;
+}
+
+.confetti-piece:nth-child(3n) {
+  background: #3498db;
+  width: 6px;
+  height: 6px;
+  animation-delay: -1s;
+}
+
+.confetti-piece:nth-child(4n) {
+  background: #2ecc71;
+  width: 8px;
+  height: 8px;
+  animation-delay: -1.5s;
+}
+
+.confetti-piece:nth-child(5n) {
+  background: #9b59b6;
+  width: 6px;
+  height: 6px;
+  animation-delay: -2s;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Message d'amour spécial */
+.love-message {
+  background: linear-gradient(45deg, #ff6b6b, #ff8e53, #ff6b9d);
+  background-size: 400% 400%;
+  animation: love-gradient 2s ease infinite;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  border: 3px solid #fff;
+  box-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+}
+
+@keyframes love-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Animation de pulsation pour la victoire */
+.victory-pulse {
+  animation: victory-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes victory-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+/* Effet de brillance */
+.sparkle {
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
