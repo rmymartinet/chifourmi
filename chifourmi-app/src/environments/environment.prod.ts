@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  socketUrl: 'https://YOUR_RAILWAY_URL_HERE' // Remplacez par votre vraie URL Railway
+  socketUrl: 'https://VOTRE_URL_RAILWAY_ICI' // Collez l'URL que Railway vous donne
 }; 
