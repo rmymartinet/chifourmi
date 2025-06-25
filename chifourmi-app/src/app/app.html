@@ -1,0 +1,223 @@
+
+
+<div class="min-h-screen flex flex-col items-center justify-center p-4">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <h1 class="text-5xl font-bold text-gray-800 mb-2">🎮 Chifourmi</h1>
+    <p class="text-xl text-gray-600">Bordeaux vs Vienne</p>
+    <p class="text-lg text-gray-500 mt-2">Premier à 3 manches gagnées !</p>
+  </div>
+
+  <!-- Écran de connexion -->
+  <div *ngIf="!isConnected" class="w-full max-w-md">
+    <div class="bg-white rounded-2xl shadow-xl p-8">
+      <h2 class="text-2xl font-bold text-center mb-6">Rejoindre la partie</h2>
+      
+      <form (ngSubmit)="joinGame()" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Votre nom</label>
+          <input 
+            [(ngModel)]="playerName" 
+            name="playerName"
+            type="text" 
+            placeholder="Entrez votre nom..."
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Choisissez votre ville</label>
+          <div class="grid grid-cols-2 gap-4">
+            <button 
+              type="button"
+              (click)="selectedCity = 'bordeaux'"
+              [class]="selectedCity === 'bordeaux' ? 'ring-4 ring-bordeaux-500' : ''"
+              class="city-card city-bordeaux hover:shadow-xl cursor-pointer">
+              <div class="text-2xl mb-2">🍷</div>
+              <div class="font-bold text-bordeaux-700">Bordeaux</div>
+            </button>
+            
+            <button 
+              type="button"
+              (click)="selectedCity = 'vienne'"
+              [class]="selectedCity === 'vienne' ? 'ring-4 ring-vienne-500' : ''"
+              class="city-card city-vienne hover:shadow-xl cursor-pointer">
+              <div class="text-2xl mb-2">🎼</div>
+              <div class="font-bold text-vienne-700">Vienne</div>
+            </button>
+          </div>
+        </div>
+        
+        <button 
+          type="submit"
+          [disabled]="!playerName || !selectedCity || isConnecting"
+          class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+          {{ isConnecting ? 'Connexion...' : 'Rejoindre la partie' }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Interface de jeu -->
+  <div *ngIf="isConnected" class="w-full max-w-6xl">
+    <!-- Scores et informations -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <!-- Joueur Bordeaux -->
+      <div class="city-card city-bordeaux">
+        <div class="text-center">
+          <div class="text-3xl mb-2">🍷</div>
+          <h3 class="font-bold text-bordeaux-700 text-lg">Bordeaux</h3>
+          <p class="text-gray-600" *ngIf="players.bordeaux">{{ players.bordeaux.name }}</p>
+          <div class="text-3xl font-bold text-bordeaux-600 mt-2">{{ scores.bordeaux }}</div>
+          <div *ngIf="waitingChoices.bordeaux" class="mt-2">
+            <span class="inline-block animate-pulse-fast text-green-500">✓ Choix fait</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manche actuelle -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">Manche {{ currentRound }}/3</h3>
+        <div class="text-4xl font-bold text-gray-800">{{ currentRound }} / 3</div>
+        <div *ngIf="roundWinner" class="mt-4 p-3 rounded-lg" 
+             [class]="roundWinner === 'égalité' ? 'bg-yellow-100 text-yellow-800' : 
+                      roundWinner === 'bordeaux' ? 'bg-red-100 text-red-800' : 
+                      'bg-blue-100 text-blue-800'">
+          <span *ngIf="roundWinner === 'égalité'">🤝 Égalité !</span>
+          <span *ngIf="roundWinner === 'bordeaux'">🍷 Bordeaux gagne !</span>
+          <span *ngIf="roundWinner === 'vienne'">🎼 Vienne gagne !</span>
+        </div>
+      </div>
+
+      <!-- Joueur Vienne -->
+      <div class="city-card city-vienne">
+        <div class="text-center">
+          <div class="text-3xl mb-2">🎼</div>
+          <h3 class="font-bold text-vienne-700 text-lg">Vienne</h3>
+          <p class="text-gray-600" *ngIf="players.vienne">{{ players.vienne.name }}</p>
+          <div class="text-3xl font-bold text-vienne-600 mt-2">{{ scores.vienne }}</div>
+          <div *ngIf="waitingChoices.vienne" class="mt-2">
+            <span class="inline-block animate-pulse-fast text-green-500">✓ Choix fait</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résultat de la manche -->
+    <div *ngIf="lastRoundResult" class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+      <h3 class="text-xl font-bold text-center mb-4">Résultat de la manche {{ lastRoundResult.round }}</h3>
+      <div class="grid grid-cols-2 gap-8">
+        <div class="text-center">
+          <div class="text-6xl mb-2">{{ getChoiceEmoji(lastRoundResult.choices.bordeaux?.choice || '') }}</div>
+          <p class="font-semibold">{{ lastRoundResult.choices.bordeaux?.player }} (Bordeaux)</p>
+          <p class="text-gray-600">{{ lastRoundResult.choices.bordeaux?.choice }}</p>
+        </div>
+        <div class="text-center">
+          <div class="text-6xl mb-2">{{ getChoiceEmoji(lastRoundResult.choices.vienne?.choice || '') }}</div>
+          <p class="font-semibold">{{ lastRoundResult.choices.vienne?.player }} (Vienne)</p>
+          <p class="text-gray-600">{{ lastRoundResult.choices.vienne?.choice }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Choix du joueur -->
+    <div *ngIf="!gameFinished && canPlay()" class="bg-white rounded-2xl shadow-lg p-8">
+      <h3 class="text-2xl font-bold text-center mb-6">Faites votre choix !</h3>
+      <div class="grid grid-cols-3 gap-6">
+        <button 
+          (click)="makeChoice('pierre')"
+          class="btn-choice bg-gray-100 hover:bg-gray-200 rounded-2xl p-8 text-center">
+          <div class="text-6xl mb-2">🪨</div>
+          <div class="font-semibold text-gray-700">Pierre</div>
+        </button>
+        
+        <button 
+          (click)="makeChoice('papier')"
+          class="btn-choice bg-blue-100 hover:bg-blue-200 rounded-2xl p-8 text-center">
+          <div class="text-6xl mb-2">📄</div>
+          <div class="font-semibold text-blue-700">Papier</div>
+        </button>
+        
+        <button 
+          (click)="makeChoice('ciseaux')"
+          class="btn-choice bg-red-100 hover:bg-red-200 rounded-2xl p-8 text-center">
+          <div class="text-6xl mb-2">✂️</div>
+          <div class="font-semibold text-red-700">Ciseaux</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Attente -->
+    <div *ngIf="!gameFinished && !canPlay()" class="bg-white rounded-2xl shadow-lg p-8 text-center">
+      <div class="animate-bounce-slow text-4xl mb-4">⏳</div>
+      <h3 class="text-xl font-semibold text-gray-700">En attente de votre adversaire...</h3>
+    </div>
+
+    <!-- Fin de partie -->
+    <div *ngIf="gameFinished" class="bg-white rounded-2xl shadow-lg p-8 text-center victory-pulse">
+      <!-- Confettis -->
+      <div *ngIf="finalWinner !== 'égalité'" class="confetti">
+        <div *ngFor="let i of [].constructor(50); let idx = index" 
+             class="confetti-piece" 
+             [style.left.%]="(idx * 2) % 100"
+             [style.animation-delay.s]="(idx * 0.1) % 3">
+        </div>
+      </div>
+
+      <div class="text-6xl mb-4 sparkle">
+        <span *ngIf="finalWinner === 'égalité'">🤝</span>
+        <span *ngIf="finalWinner === 'bordeaux'">🍷🎉</span>
+        <span *ngIf="finalWinner === 'vienne'">🎼🎊</span>
+      </div>
+      
+      <h2 class="text-3xl font-bold mb-4" 
+          [class]="finalWinner === 'égalité' ? 'text-yellow-600' : 
+                   finalWinner === 'bordeaux' ? 'text-bordeaux-600' : 
+                   'text-vienne-600'">
+        <span *ngIf="finalWinner === 'égalité'">Match nul !</span>
+        <span *ngIf="finalWinner === 'bordeaux'">🏆 Bordeaux remporte la partie ! 🏆</span>
+        <span *ngIf="finalWinner === 'vienne'">🏆 Vienne remporte la partie ! 🏆</span>
+      </h2>
+
+      <!-- Message spécial si Maria perd -->
+      <div *ngIf="finalWinner === 'bordeaux'" class="love-message rounded-2xl p-6 mb-6">
+        <h3 class="text-4xl font-bold mb-2">💕 Rémy je t'aime 💕</h3>
+        <p class="text-xl">Direction Bordeaux pour MARIA ! ✈️</p>
+      </div>
+      
+      <p *ngIf="finalWinner !== 'bordeaux'" class="text-xl text-gray-600 mb-6">
+        <span *ngIf="finalWinner === 'égalité'">Personne ne voyage cette fois ! 🤝</span>
+        <span *ngIf="finalWinner === 'vienne'">Direction Bordeaux pour Rémy ! 🍷✈️</span>
+      </p>
+      
+      <button 
+        (click)="newGame()"
+        class="bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 px-8 rounded-lg font-semibold hover:from-green-600 hover:to-blue-700 transition-all sparkle">
+        🎮 Nouvelle partie
+      </button>
+    </div>
+  </div>
+
+  <!-- Messages d'erreur -->
+  <div *ngIf="errorMessage" class="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Status de connexion -->
+  <div class="fixed bottom-4 left-4 flex items-center space-x-2">
+    <div [class]="isConnected ? 'bg-green-500' : 'bg-red-500'" class="w-3 h-3 rounded-full"></div>
+    <span class="text-sm text-gray-600">
+      {{ isConnected ? 'Connecté' : 'Déconnecté' }}
+    </span>
+  </div>
+</div>
+
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * is only a placeholder * * * * * * * * * * * -->
+<!-- * * * * * * * * * * and can be replaced.  * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
+<!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+
+
+
