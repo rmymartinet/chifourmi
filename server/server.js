@@ -20,6 +20,20 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Route de test
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Serveur Chifourmi actif !', 
+    timestamp: new Date().toISOString(),
+    theme: gameState.theme,
+    players: Object.keys(gameState.players).length
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', uptime: process.uptime() });
+});
+
 // État du jeu
 let gameState = {
   players: {},

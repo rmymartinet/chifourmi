@@ -76,8 +76,13 @@ export class AppComponent implements OnInit, OnDestroy {
   waitingChoices: { [key: string]: boolean } = {};
   
   constructor(private cdr: ChangeDetectorRef) {
-    this.socket = io(environment.socketUrl);
+    this.socket = io(environment.socketUrl, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true
+    });
     console.log('🔌 Connecting to:', environment.socketUrl);
+    console.log('🌍 Environment:', environment);
   }
 
   private getDefaultTheme(): GameTheme {
@@ -176,16 +181,23 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private setupSocketListeners() {
     this.socket.on('connect', () => {
-      console.log('✅ Connecté au serveur WebSocket');
+      console.log('✅ Connecté au serveur WebSocket, ID:', this.socket.id);
       // Reset connection state si on était en train de se connecter
       if (this.isConnecting) {
         console.log('🔄 Réinitialisation état de connexion');
       }
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ Erreur de connexion Socket.io:', error);
+      this.isConnecting = false;
+      this.showError('Erreur de connexion au serveur. Vérifiez votre connexion.');
+      this.cdr.detectChanges();
+    });
+
+    this.socket.on('disconnect', (reason) => {
       this.isConnected = false;
-      console.log('Déconnecté du serveur');
+      console.log('❌ Déconnecté du serveur:', reason);
     });
 
     this.socket.on('gameJoined', (data: { playerId: string; gameState: GameState }) => {
