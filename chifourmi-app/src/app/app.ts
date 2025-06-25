@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { io, Socket } from 'socket.io-client';
+import { environment } from '../environments/environment';
 
 interface Player {
   id: string;
@@ -62,7 +63,8 @@ export class AppComponent implements OnInit, OnDestroy {
   waitingChoices = { bordeaux: false, vienne: false };
   
   constructor(private cdr: ChangeDetectorRef) {
-    this.socket = io('http://localhost:3001');
+    this.socket = io(environment.socketUrl);
+    console.log('🔌 Connecting to:', environment.socketUrl);
   }
 
   ngOnInit() {
