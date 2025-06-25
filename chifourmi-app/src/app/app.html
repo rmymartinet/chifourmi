@@ -18,6 +18,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">Votre nom</label>
           <input 
             [(ngModel)]="playerName" 
+            (ngModelChange)="onPlayerNameChange()"
             name="playerName"
             type="text" 
             placeholder="Entrez votre nom..."

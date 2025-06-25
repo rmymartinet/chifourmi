@@ -84,14 +84,16 @@ export class AppComponent implements OnInit, OnDestroy {
     return {
       name: 'default',
       cities: {
-        city1: { name: 'Chelsea', emoji: '⚽', color: 'blue' },
-        city2: { name: 'Espérance', emoji: '🌟', color: 'yellow' }
+        city1: { name: 'France', emoji: '🇫🇷', color: 'blue' },
+        city2: { name: 'Tunisie', emoji: '🇹🇳', color: 'red' }
       }
     };
   }
 
   private getThemeForPlayers(): GameTheme {
-    const playerNames = Object.values(this.players).map(p => p.name.toLowerCase());
+    // Inclure le nom du joueur local aussi
+    const allNames = [this.playerName, ...Object.values(this.players).map(p => p.name)];
+    const playerNames = allNames.map(name => name.toLowerCase()).filter(name => name);
     
     if (playerNames.includes('maria')) {
       return {
@@ -137,8 +139,8 @@ export class AppComponent implements OnInit, OnDestroy {
       this.scores = { france: 0, tunisie: 0 };
       this.waitingChoices = { france: false, tunisie: false };
     } else {
-      this.scores = { chelsea: 0, esperance: 0 };
-      this.waitingChoices = { chelsea: false, esperance: false };
+      this.scores = { france: 0, tunisie: 0 };
+      this.waitingChoices = { france: false, tunisie: false };
     }
   }
 
@@ -154,9 +156,10 @@ export class AppComponent implements OnInit, OnDestroy {
         { key: 'tunisie' as CityType, name: 'Tunisie', emoji: '🇹🇳' }
       ];
     } else {
+      // Thème par défaut : France vs Tunisie
       return [
-        { key: 'chelsea' as CityType, name: 'Chelsea', emoji: '⚽' },
-        { key: 'esperance' as CityType, name: 'Espérance', emoji: '🌟' }
+        { key: 'france' as CityType, name: 'France', emoji: '🇫🇷' },
+        { key: 'tunisie' as CityType, name: 'Tunisie', emoji: '🇹🇳' }
       ];
     }
   }
@@ -264,6 +267,16 @@ export class AppComponent implements OnInit, OnDestroy {
     
     // Mettre à jour le thème si nécessaire
     this.updateTheme();
+  }
+
+  onPlayerNameChange() {
+    // Mettre à jour le thème en fonction du nom
+    this.updateTheme();
+    // Réinitialiser la ville sélectionnée si elle n'est plus valide
+    const validCities = this.getCityOptions().map(c => c.key);
+    if (this.selectedCity && !validCities.includes(this.selectedCity as CityType)) {
+      this.selectedCity = '';
+    }
   }
 
   joinGame() {

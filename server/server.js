@@ -54,8 +54,8 @@ function getThemeForPlayers() {
   
   return {
     name: 'default',
-    cities: ['chelsea', 'esperance'],
-    scores: { chelsea: 0, esperance: 0 }
+    cities: ['france', 'tunisie'],
+    scores: { france: 0, tunisie: 0 }
   };
 }
 
