@@ -153,8 +153,8 @@
       </div>
       
       <p *ngIf="!shouldShowSpecialMessage()" class="text-xl text-gray-600 mb-6">
-        <span *ngIf="finalWinner === 'égalité'">Personne ne voyage cette fois ! 🤝</span>
-        <span *ngIf="finalWinner !== 'égalité'">Le perdant voyage vers {{ getWinnerDisplayName(finalWinner) }} ! ✈️</span>
+        <span *ngIf="finalWinner === 'égalité'">Egalité impossible on recommence 🤝</span>
+        <span *ngIf="finalWinner !== 'égalité'">Encore une fois, la Tunisie de la petite Sarra perd {{ getWinnerDisplayName(finalWinner) }} ! ✈️</span>
       </p>
       
       <button 

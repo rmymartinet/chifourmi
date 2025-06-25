@@ -91,12 +91,19 @@ io.on('connection', (socket) => {
   socket.on('joinGame', (playerData) => {
     const { name, city } = playerData;
     
+    console.log('🚪 NOUVELLE CONNEXION REÇUE');
+    console.log('👤 Prénom:', name);
+    console.log('🏠 Ville demandée:', city);
+    console.log('🆔 Socket ID:', socket.id);
+    
     // Mettre à jour le thème en fonction des joueurs
     updateGameTheme();
+    console.log('🎨 Thème après mise à jour:', gameState.theme);
     
     // Vérifier si la ville est disponible
     const existingPlayer = Object.values(gameState.players).find(p => p.city === city);
     if (existingPlayer) {
+      console.log('❌ Ville déjà prise par:', existingPlayer.name);
       socket.emit('error', `L'équipe ${city} est déjà prise par ${existingPlayer.name} !`);
       return;
     }
@@ -111,6 +118,10 @@ io.on('connection', (socket) => {
     // Mettre à jour le thème avec le nouveau joueur
     updateGameTheme();
 
+    console.log('✅ JOUEUR AJOUTÉ AVEC SUCCÈS');
+    console.log('👥 Nombre total de joueurs:', Object.keys(gameState.players).length);
+    console.log('🎮 État complet du jeu:', gameState);
+
     socket.emit('gameJoined', { 
       playerId: socket.id, 
       gameState: gameState 
@@ -120,38 +131,56 @@ io.on('connection', (socket) => {
     io.emit('playerJoined', gameState.players[socket.id]);
     io.emit('gameUpdate', gameState);
 
-    console.log(`👤 ${name} (${city}) a rejoint le jeu`);
+    console.log(`🎉 ${name} (${city}) a rejoint le jeu avec succès !`);
   });
 
   // Faire un choix
   socket.on('makeChoice', (choice) => {
+    console.log('🎯 CHOIX REÇU DU CLIENT');
+    console.log('🆔 Socket ID:', socket.id);
+    console.log('✋ Choix:', choice);
+    
     if (!gameState.players[socket.id]) {
+      console.log('❌ Joueur non trouvé dans gameState.players');
       socket.emit('error', 'Vous devez rejoindre le jeu d\'abord !');
       return;
     }
     
     if (gameState.roundInProgress) {
+      console.log('❌ Manche déjà en cours');
       socket.emit('error', 'Manche en cours, attendez le résultat !');
       return;
     }
+
+    const player = gameState.players[socket.id];
+    console.log('👤 JOUEUR QUI FAIT LE CHOIX:');
+    console.log('   Prénom:', player.name);
+    console.log('   Ville:', player.city);
+    console.log('   Choix:', choice);
 
     // Enregistrer le choix
     gameState.choices[socket.id] = choice;
     
     // Informer que le joueur a fait son choix
-    const playerCity = gameState.players[socket.id].city;
+    const playerCity = player.city;
     io.emit('choiceMade', { city: playerCity });
 
-    console.log(`⚡ ${gameState.players[socket.id].name} (${playerCity}) a choisi ${choice}`);
+    console.log(`✅ CHOIX ENREGISTRÉ: ${player.name} (${playerCity}) a choisi ${choice}`);
 
     // Vérifier si les deux joueurs ont fait leur choix
     const playerIds = Object.keys(gameState.players);
+    console.log('🔍 Vérification des choix:');
+    console.log('   Nombre de joueurs:', playerIds.length);
+    console.log('   Choix reçus:', Object.keys(gameState.choices).length);
+    
     if (playerIds.length === 2 && 
         gameState.choices[playerIds[0]] && 
         gameState.choices[playerIds[1]]) {
       
-      console.log('🎲 Traitement de la manche...');
+      console.log('🎲 TOUS LES CHOIX REÇUS - TRAITEMENT DE LA MANCHE...');
       processRound();
+    } else {
+      console.log('⏳ En attente du choix de l\'autre joueur...');
     }
   });
 

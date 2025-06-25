@@ -191,8 +191,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.socket.on('connect_error', (error) => {
       console.error('❌ Erreur de connexion Socket.io:', error);
       this.isConnecting = false;
-      this.showError('Erreur de connexion au serveur. Vérifiez votre connexion.');
+      this.showError(`Erreur de connexion: ${error.message}. Tentative de reconnexion...`);
       this.cdr.detectChanges();
+      
+      // Tentative de reconnexion après 3 secondes
+      setTimeout(() => {
+        console.log('🔄 Tentative de reconnexion...');
+        this.socket.connect();
+      }, 3000);
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -201,14 +207,17 @@ export class AppComponent implements OnInit, OnDestroy {
     });
 
     this.socket.on('gameJoined', (data: { playerId: string; gameState: GameState }) => {
-      console.log('🎉 Jeu rejoint avec succès !', data);
+      console.log('🎉 JEU REJOINT AVEC SUCCÈS !');
+      console.log('🆔 Player ID reçu:', data.playerId);
+      console.log('🎮 État du jeu:', data.gameState);
+      console.log('👥 Joueurs connectés:', Object.keys(data.gameState.players).length);
       this.playerId = data.playerId;
       this.isConnected = true;
       this.isConnecting = false;
       this.updateGameState(data.gameState);
       this.clearError();
       this.cdr.detectChanges(); // Force la détection de changement
-      console.log('🔄 Interface mise à jour, isConnecting:', this.isConnecting);
+      console.log('✅ Interface mise à jour, connecté !');
     });
 
     this.socket.on('gameUpdate', (gameState: GameState) => {
@@ -282,11 +291,14 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onPlayerNameChange() {
+    console.log('📝 Nom changé:', this.playerName);
     // Mettre à jour le thème en fonction du nom
     this.updateTheme();
+    console.log('🎨 Thème mis à jour:', this.currentTheme.name);
     // Réinitialiser la ville sélectionnée si elle n'est plus valide
     const validCities = this.getCityOptions().map(c => c.key);
     if (this.selectedCity && !validCities.includes(this.selectedCity as CityType)) {
+      console.log('🚫 Ville non valide, réinitialisation:', this.selectedCity);
       this.selectedCity = '';
     }
   }
@@ -295,7 +307,11 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!this.playerName || !this.selectedCity || this.isConnecting) return;
     
     this.isConnecting = true;
-    console.log('🚀 Tentative de connexion...', { name: this.playerName, city: this.selectedCity });
+    console.log('🚀 TENTATIVE DE CONNEXION');
+    console.log('👤 Prénom:', this.playerName);
+    console.log('🏠 Ville choisie:', this.selectedCity);
+    console.log('🎨 Thème actuel:', this.currentTheme.name);
+    console.log('🔗 URL serveur:', environment.socketUrl);
     
     this.socket.emit('joinGame', {
       name: this.playerName,
@@ -305,7 +321,9 @@ export class AppComponent implements OnInit, OnDestroy {
     // Timeout de sécurité au cas où le serveur ne répond pas
     setTimeout(() => {
       if (this.isConnecting) {
-        console.log('⏰ Timeout de connexion - état socket:', this.socket.connected);
+        console.log('⏰ TIMEOUT DE CONNEXION');
+        console.log('🔌 État socket connecté:', this.socket.connected);
+        console.log('🆔 Socket ID:', this.socket.id);
         this.isConnecting = false;
         this.showError('Connexion échouée. Vérifiez que le serveur fonctionne.');
         this.cdr.detectChanges();
@@ -316,10 +334,16 @@ export class AppComponent implements OnInit, OnDestroy {
   makeChoice(choice: string) {
     if (!this.canPlay()) return;
     
+    const playerCity = this.getPlayerCity();
+    console.log('🎯 CHOIX FAIT');
+    console.log('👤 Prénom:', this.playerName);
+    console.log('🏠 Ville:', playerCity);
+    console.log('✋ Choix:', choice);
+    console.log('🎲 Émission vers serveur...');
+    
     this.socket.emit('makeChoice', choice);
     
     // Marquer que ce joueur a fait son choix
-    const playerCity = this.getPlayerCity();
     if (playerCity) {
       this.waitingChoices[playerCity] = true;
     }
