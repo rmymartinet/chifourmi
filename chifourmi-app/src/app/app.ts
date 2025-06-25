@@ -4,30 +4,40 @@ import { FormsModule } from '@angular/forms';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../environments/environment';
 
+type CityType = 'bordeaux' | 'vienne' | 'france' | 'tunisie' | 'chelsea' | 'esperance';
+
 interface Player {
   id: string;
   name: string;
-  city: 'bordeaux' | 'vienne';
+  city: CityType;
+}
+
+interface GameTheme {
+  name: string;
+  cities: {
+    city1: { name: string; emoji: string; color: string };
+    city2: { name: string; emoji: string; color: string };
+  };
+  specialMessage?: string;
+  winnerMessage?: string;
 }
 
 interface GameState {
   players: { [socketId: string]: Player };
   currentRound: number;
   maxRounds: number;
-  scores: { bordeaux: number; vienne: number };
+  scores: { [key: string]: number };
   roundInProgress: boolean;
   choices: { [socketId: string]: string };
   winner: string | null;
+  theme?: string;
 }
 
 interface RoundResult {
   round: number;
-  choices: {
-    bordeaux?: { player: string; choice: string };
-    vienne?: { player: string; choice: string };
-  };
+  choices: { [key: string]: { player: string; choice: string } };
   winner: string;
-  scores: { bordeaux: number; vienne: number };
+  scores: { [key: string]: number };
 }
 
 @Component({
@@ -47,12 +57,15 @@ export class AppComponent implements OnInit, OnDestroy {
   
   // Données du joueur
   playerName = '';
-  selectedCity: 'bordeaux' | 'vienne' | '' = '';
+  selectedCity: CityType | '' = '';
   playerId = '';
   
+  // Thème du jeu
+  currentTheme: GameTheme = this.getDefaultTheme();
+  
   // État du jeu
-  players: { bordeaux?: Player; vienne?: Player } = {};
-  scores = { bordeaux: 0, vienne: 0 };
+  players: { [key: string]: Player } = {};
+  scores: { [key: string]: number } = {};
   currentRound = 0;
   gameFinished = false;
   finalWinner = '';
@@ -60,11 +73,92 @@ export class AppComponent implements OnInit, OnDestroy {
   // État de la manche
   roundWinner = '';
   lastRoundResult: RoundResult | null = null;
-  waitingChoices = { bordeaux: false, vienne: false };
+  waitingChoices: { [key: string]: boolean } = {};
   
   constructor(private cdr: ChangeDetectorRef) {
     this.socket = io(environment.socketUrl);
     console.log('🔌 Connecting to:', environment.socketUrl);
+  }
+
+  private getDefaultTheme(): GameTheme {
+    return {
+      name: 'default',
+      cities: {
+        city1: { name: 'Chelsea', emoji: '⚽', color: 'blue' },
+        city2: { name: 'Espérance', emoji: '🌟', color: 'yellow' }
+      }
+    };
+  }
+
+  private getThemeForPlayers(): GameTheme {
+    const playerNames = Object.values(this.players).map(p => p.name.toLowerCase());
+    
+    if (playerNames.includes('maria')) {
+      return {
+        name: 'romantic',
+        cities: {
+          city1: { name: 'Bordeaux', emoji: '🍷', color: 'red' },
+          city2: { name: 'Vienne', emoji: '🎼', color: 'purple' }
+        },
+        specialMessage: 'Rémy je t\'aime',
+        winnerMessage: 'vienne'
+      };
+    }
+    
+    if (playerNames.includes('sarra')) {
+      return {
+        name: 'tunisia-france',
+        cities: {
+          city1: { name: 'France', emoji: '🇫🇷', color: 'blue' },
+          city2: { name: 'Tunisie', emoji: '🇹🇳', color: 'red' }
+        },
+        specialMessage: 'La Tunisie perd encore une fois !',
+        winnerMessage: 'france'
+      };
+    }
+    
+    return this.getDefaultTheme();
+  }
+
+  private updateTheme() {
+    this.currentTheme = this.getThemeForPlayers();
+    this.initializeScoresForTheme();
+  }
+
+  private initializeScoresForTheme() {
+    const cities = Object.keys(this.currentTheme.cities);
+    this.scores = {};
+    this.waitingChoices = {};
+    
+    if (this.currentTheme.name === 'romantic') {
+      this.scores = { bordeaux: 0, vienne: 0 };
+      this.waitingChoices = { bordeaux: false, vienne: false };
+    } else if (this.currentTheme.name === 'tunisia-france') {
+      this.scores = { france: 0, tunisie: 0 };
+      this.waitingChoices = { france: false, tunisie: false };
+    } else {
+      this.scores = { chelsea: 0, esperance: 0 };
+      this.waitingChoices = { chelsea: false, esperance: false };
+    }
+  }
+
+  getCityOptions(): Array<{key: CityType, name: string, emoji: string}> {
+    if (this.currentTheme.name === 'romantic') {
+      return [
+        { key: 'bordeaux' as CityType, name: 'Bordeaux', emoji: '🍷' },
+        { key: 'vienne' as CityType, name: 'Vienne', emoji: '🎼' }
+      ];
+    } else if (this.currentTheme.name === 'tunisia-france') {
+      return [
+        { key: 'france' as CityType, name: 'France', emoji: '🇫🇷' },
+        { key: 'tunisie' as CityType, name: 'Tunisie', emoji: '🇹🇳' }
+      ];
+    } else {
+      return [
+        { key: 'chelsea' as CityType, name: 'Chelsea', emoji: '⚽' },
+        { key: 'esperance' as CityType, name: 'Espérance', emoji: '🌟' }
+      ];
+    }
   }
 
   ngOnInit() {
@@ -119,7 +213,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.socket.on('choiceMade', (data: { city: string }) => {
       console.log('⚡ Choix reçu pour', data.city);
-      this.waitingChoices[data.city as 'bordeaux' | 'vienne'] = true;
+      this.waitingChoices[data.city] = true;
       this.cdr.detectChanges();
     });
 
@@ -167,6 +261,9 @@ export class AppComponent implements OnInit, OnDestroy {
     Object.values(gameState.players).forEach(player => {
       this.players[player.city] = player;
     });
+    
+    // Mettre à jour le thème si nécessaire
+    this.updateTheme();
   }
 
   joinGame() {
@@ -219,9 +316,10 @@ export class AppComponent implements OnInit, OnDestroy {
     return playerCity ? !this.waitingChoices[playerCity] && !this.gameFinished : false;
   }
 
-  private getPlayerCity(): 'bordeaux' | 'vienne' | null {
-    if (this.players.bordeaux?.id === this.playerId) return 'bordeaux';
-    if (this.players.vienne?.id === this.playerId) return 'vienne';
+  private getPlayerCity(): CityType | null {
+    for (const [city, player] of Object.entries(this.players)) {
+      if (player.id === this.playerId) return city as CityType;
+    }
     return null;
   }
 
@@ -232,6 +330,25 @@ export class AppComponent implements OnInit, OnDestroy {
       case 'ciseaux': return '✂️';
       default: return '❓';
     }
+  }
+
+  getWinnerDisplayName(winner: string): string {
+    const cityOption = this.getCityOptions().find(c => c.key === winner);
+    return cityOption ? cityOption.name : winner;
+  }
+
+  shouldShowSpecialMessage(): boolean {
+    if (!this.gameFinished || !this.currentTheme.specialMessage) return false;
+    
+    if (this.currentTheme.name === 'romantic') {
+      return this.finalWinner === 'bordeaux'; // Si Maria (Vienne) perd
+    }
+    
+    if (this.currentTheme.name === 'tunisia-france') {
+      return this.finalWinner === 'france'; // Si Sarra (Tunisie) perd
+    }
+    
+    return false;
   }
 
   private showError(message: string) {

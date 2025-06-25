@@ -25,11 +25,49 @@ let gameState = {
   players: {},
   currentRound: 0,
   maxRounds: 3,
-  scores: { bordeaux: 0, vienne: 0 },
+  scores: {},
   roundInProgress: false,
   choices: {},
-  winner: null
+  winner: null,
+  theme: 'default'
 };
+
+// Gestion des thèmes
+function getThemeForPlayers() {
+  const playerNames = Object.values(gameState.players).map(p => p.name.toLowerCase());
+  
+  if (playerNames.includes('maria')) {
+    return {
+      name: 'romantic',
+      cities: ['bordeaux', 'vienne'],
+      scores: { bordeaux: 0, vienne: 0 }
+    };
+  }
+  
+  if (playerNames.includes('sarra')) {
+    return {
+      name: 'tunisia-france', 
+      cities: ['france', 'tunisie'],
+      scores: { france: 0, tunisie: 0 }
+    };
+  }
+  
+  return {
+    name: 'default',
+    cities: ['chelsea', 'esperance'],
+    scores: { chelsea: 0, esperance: 0 }
+  };
+}
+
+function updateGameTheme() {
+  const theme = getThemeForPlayers();
+  gameState.theme = theme.name;
+  
+  // Réinitialiser les scores selon le thème
+  if (gameState.currentRound === 0) {
+    gameState.scores = { ...theme.scores };
+  }
+}
 
 // Gestion des connexions WebSocket
 io.on('connection', (socket) => {
@@ -39,10 +77,13 @@ io.on('connection', (socket) => {
   socket.on('joinGame', (playerData) => {
     const { name, city } = playerData;
     
+    // Mettre à jour le thème en fonction des joueurs
+    updateGameTheme();
+    
     // Vérifier si la ville est disponible
     const existingPlayer = Object.values(gameState.players).find(p => p.city === city);
     if (existingPlayer) {
-      socket.emit('error', `La ville ${city} est déjà prise par ${existingPlayer.name} !`);
+      socket.emit('error', `L'équipe ${city} est déjà prise par ${existingPlayer.name} !`);
       return;
     }
 
@@ -52,6 +93,9 @@ io.on('connection', (socket) => {
       name: name,
       city: city
     };
+
+    // Mettre à jour le thème avec le nouveau joueur
+    updateGameTheme();
 
     socket.emit('gameJoined', { 
       playerId: socket.id, 
@@ -164,12 +208,15 @@ function processRound() {
 
   // Vérifier si le jeu est terminé
   if (gameState.currentRound >= gameState.maxRounds) {
-    if (gameState.scores.bordeaux > gameState.scores.vienne) {
-      gameState.winner = 'bordeaux';
-      console.log('🎉 Bordeaux remporte la partie ! Direction Vienne ! 🎼');
-    } else if (gameState.scores.vienne > gameState.scores.bordeaux) {
-      gameState.winner = 'vienne';
-      console.log('🎉 Vienne remporte la partie ! Direction Bordeaux ! 🍷');
+    const theme = getThemeForPlayers();
+    const [city1, city2] = theme.cities;
+    
+    if (gameState.scores[city1] > gameState.scores[city2]) {
+      gameState.winner = city1;
+      console.log(`🎉 ${city1} remporte la partie !`);
+    } else if (gameState.scores[city2] > gameState.scores[city1]) {
+      gameState.winner = city2;
+      console.log(`🎉 ${city2} remporte la partie !`);
     } else {
       gameState.winner = 'égalité';
       console.log('🤝 Match nul ! Personne ne voyage !');
@@ -195,11 +242,16 @@ function processRound() {
 
 function resetGame() {
   gameState.currentRound = 0;
-  gameState.scores = { bordeaux: 0, vienne: 0 };
   gameState.choices = {};
   gameState.winner = null;
   gameState.roundInProgress = false;
-  console.log('🔄 Partie réinitialisée');
+  
+  // Réinitialiser les scores selon le thème actuel
+  const theme = getThemeForPlayers();
+  gameState.scores = { ...theme.scores };
+  gameState.theme = theme.name;
+  
+  console.log('🔄 Partie réinitialisée avec thème:', theme.name);
 }
 
 // Route de santé

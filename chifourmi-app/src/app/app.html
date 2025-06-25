@@ -4,7 +4,7 @@
   <!-- Header -->
   <div class="text-center mb-8">
     <h1 class="text-5xl font-bold text-gray-800 mb-2">🎮 Chifourmi</h1>
-    <p class="text-xl text-gray-600">Bordeaux vs Vienne</p>
+    <p class="text-xl text-gray-600">{{ currentTheme.cities.city1.name }} vs {{ currentTheme.cities.city2.name }}</p>
     <p class="text-lg text-gray-500 mt-2">Premier à 3 manches gagnées !</p>
   </div>
 
@@ -25,24 +25,16 @@
         </div>
         
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Choisissez votre ville</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Choisissez votre équipe</label>
           <div class="grid grid-cols-2 gap-4">
             <button 
+              *ngFor="let city of getCityOptions()"
               type="button"
-              (click)="selectedCity = 'bordeaux'"
-              [class]="selectedCity === 'bordeaux' ? 'ring-4 ring-bordeaux-500' : ''"
-              class="city-card city-bordeaux hover:shadow-xl cursor-pointer">
-              <div class="text-2xl mb-2">🍷</div>
-              <div class="font-bold text-bordeaux-700">Bordeaux</div>
-            </button>
-            
-            <button 
-              type="button"
-              (click)="selectedCity = 'vienne'"
-              [class]="selectedCity === 'vienne' ? 'ring-4 ring-vienne-500' : ''"
-              class="city-card city-vienne hover:shadow-xl cursor-pointer">
-              <div class="text-2xl mb-2">🎼</div>
-              <div class="font-bold text-vienne-700">Vienne</div>
+              (click)="selectedCity = city.key"
+              [class]="selectedCity === city.key ? 'ring-4 ring-blue-500' : ''"
+              class="city-card hover:shadow-xl cursor-pointer bg-white border-2 border-gray-200 rounded-xl p-4 text-center transition-all">
+              <div class="text-2xl mb-2">{{ city.emoji }}</div>
+              <div class="font-bold text-gray-700">{{ city.name }}</div>
             </button>
           </div>
         </div>
@@ -61,43 +53,26 @@
   <div *ngIf="isConnected" class="w-full max-w-6xl">
     <!-- Scores et informations -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <!-- Joueur Bordeaux -->
-      <div class="city-card city-bordeaux">
+      <!-- Joueurs dynamiques -->
+      <div *ngFor="let city of getCityOptions(); let first = first" class="city-card bg-white rounded-2xl shadow-lg p-6">
         <div class="text-center">
-          <div class="text-3xl mb-2">🍷</div>
-          <h3 class="font-bold text-bordeaux-700 text-lg">Bordeaux</h3>
-          <p class="text-gray-600" *ngIf="players.bordeaux">{{ players.bordeaux.name }}</p>
-          <div class="text-3xl font-bold text-bordeaux-600 mt-2">{{ scores.bordeaux }}</div>
-          <div *ngIf="waitingChoices.bordeaux" class="mt-2">
+          <div class="text-3xl mb-2">{{ city.emoji }}</div>
+          <h3 class="font-bold text-gray-700 text-lg">{{ city.name }}</h3>
+          <p class="text-gray-600" *ngIf="players[city.key]">{{ players[city.key].name }}</p>
+          <div class="text-3xl font-bold text-blue-600 mt-2">{{ scores[city.key] || 0 }}</div>
+          <div *ngIf="waitingChoices[city.key]" class="mt-2">
             <span class="inline-block animate-pulse-fast text-green-500">✓ Choix fait</span>
           </div>
         </div>
       </div>
 
-      <!-- Manche actuelle -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 text-center">
+      <!-- Manche actuelle (au milieu pour 3 colonnes) -->
+      <div *ngIf="getCityOptions().length === 2" class="bg-white rounded-2xl shadow-lg p-6 text-center">
         <h3 class="text-lg font-semibold text-gray-700 mb-2">Manche {{ currentRound }}/3</h3>
         <div class="text-4xl font-bold text-gray-800">{{ currentRound }} / 3</div>
-        <div *ngIf="roundWinner" class="mt-4 p-3 rounded-lg" 
-             [class]="roundWinner === 'égalité' ? 'bg-yellow-100 text-yellow-800' : 
-                      roundWinner === 'bordeaux' ? 'bg-red-100 text-red-800' : 
-                      'bg-blue-100 text-blue-800'">
+        <div *ngIf="roundWinner" class="mt-4 p-3 rounded-lg bg-yellow-100 text-yellow-800">
           <span *ngIf="roundWinner === 'égalité'">🤝 Égalité !</span>
-          <span *ngIf="roundWinner === 'bordeaux'">🍷 Bordeaux gagne !</span>
-          <span *ngIf="roundWinner === 'vienne'">🎼 Vienne gagne !</span>
-        </div>
-      </div>
-
-      <!-- Joueur Vienne -->
-      <div class="city-card city-vienne">
-        <div class="text-center">
-          <div class="text-3xl mb-2">🎼</div>
-          <h3 class="font-bold text-vienne-700 text-lg">Vienne</h3>
-          <p class="text-gray-600" *ngIf="players.vienne">{{ players.vienne.name }}</p>
-          <div class="text-3xl font-bold text-vienne-600 mt-2">{{ scores.vienne }}</div>
-          <div *ngIf="waitingChoices.vienne" class="mt-2">
-            <span class="inline-block animate-pulse-fast text-green-500">✓ Choix fait</span>
-          </div>
+          <span *ngIf="roundWinner !== 'égalité'">🏆 {{ getWinnerDisplayName(roundWinner) }} gagne !</span>
         </div>
       </div>
     </div>
@@ -106,15 +81,10 @@
     <div *ngIf="lastRoundResult" class="bg-white rounded-2xl shadow-lg p-6 mb-8">
       <h3 class="text-xl font-bold text-center mb-4">Résultat de la manche {{ lastRoundResult.round }}</h3>
       <div class="grid grid-cols-2 gap-8">
-        <div class="text-center">
-          <div class="text-6xl mb-2">{{ getChoiceEmoji(lastRoundResult.choices.bordeaux?.choice || '') }}</div>
-          <p class="font-semibold">{{ lastRoundResult.choices.bordeaux?.player }} (Bordeaux)</p>
-          <p class="text-gray-600">{{ lastRoundResult.choices.bordeaux?.choice }}</p>
-        </div>
-        <div class="text-center">
-          <div class="text-6xl mb-2">{{ getChoiceEmoji(lastRoundResult.choices.vienne?.choice || '') }}</div>
-          <p class="font-semibold">{{ lastRoundResult.choices.vienne?.player }} (Vienne)</p>
-          <p class="text-gray-600">{{ lastRoundResult.choices.vienne?.choice }}</p>
+        <div *ngFor="let city of getCityOptions()" class="text-center">
+          <div class="text-6xl mb-2">{{ getChoiceEmoji(lastRoundResult.choices[city.key]?.choice || '') }}</div>
+          <p class="font-semibold">{{ lastRoundResult.choices[city.key]?.player }} ({{ city.name }})</p>
+          <p class="text-gray-600">{{ lastRoundResult.choices[city.key]?.choice }}</p>
         </div>
       </div>
     </div>
@@ -169,24 +139,21 @@
         <span *ngIf="finalWinner === 'vienne'">🎼🎊</span>
       </div>
       
-      <h2 class="text-3xl font-bold mb-4" 
-          [class]="finalWinner === 'égalité' ? 'text-yellow-600' : 
-                   finalWinner === 'bordeaux' ? 'text-bordeaux-600' : 
-                   'text-vienne-600'">
+      <h2 class="text-3xl font-bold mb-4 text-blue-600">
         <span *ngIf="finalWinner === 'égalité'">Match nul !</span>
-        <span *ngIf="finalWinner === 'bordeaux'">🏆 Bordeaux remporte la partie ! 🏆</span>
-        <span *ngIf="finalWinner === 'vienne'">🏆 Vienne remporte la partie ! 🏆</span>
+        <span *ngIf="finalWinner !== 'égalité'">🏆 {{ getWinnerDisplayName(finalWinner) }} remporte la partie ! 🏆</span>
       </h2>
 
-      <!-- Message spécial si Maria perd -->
-      <div *ngIf="finalWinner === 'bordeaux'" class="love-message rounded-2xl p-6 mb-6">
-        <h3 class="text-4xl font-bold mb-2">💕 Rémy je t'aime 💕</h3>
-        <p class="text-xl">Direction Bordeaux pour MARIA ! ✈️</p>
+      <!-- Message spécial conditionnel -->
+      <div *ngIf="shouldShowSpecialMessage()" class="love-message rounded-2xl p-6 mb-6 bg-gradient-to-r from-pink-100 to-purple-100">
+        <h3 class="text-4xl font-bold mb-2">💕 {{ currentTheme.specialMessage }} 💕</h3>
+        <p class="text-xl" *ngIf="currentTheme.name === 'romantic'">Direction Bordeaux pour MARIA ! ✈️</p>
+        <p class="text-xl" *ngIf="currentTheme.name === 'tunisia-france'">Direction France pour SARRA ! ✈️</p>
       </div>
       
-      <p *ngIf="finalWinner !== 'bordeaux'" class="text-xl text-gray-600 mb-6">
+      <p *ngIf="!shouldShowSpecialMessage()" class="text-xl text-gray-600 mb-6">
         <span *ngIf="finalWinner === 'égalité'">Personne ne voyage cette fois ! 🤝</span>
-        <span *ngIf="finalWinner === 'vienne'">Direction Bordeaux pour Rémy ! 🍷✈️</span>
+        <span *ngIf="finalWinner !== 'égalité'">Le perdant voyage vers {{ getWinnerDisplayName(finalWinner) }} ! ✈️</span>
       </p>
       
       <button 
